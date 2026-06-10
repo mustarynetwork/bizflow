@@ -303,6 +303,79 @@
     .inv-notes { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--ink-light); }
     .inv-notes strong { display: block; color: var(--ink); margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
     .inv-accent-bar { height: 4px; background: linear-gradient(90deg, var(--accent), var(--success)); border-radius: 2px; margin-bottom: 32px; }
+
+    /* ── SAVED INVOICES VIEW ── */
+    #invoices-view { display: none; }
+    .invoices-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .invoice-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .invoice-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(67,97,238,0.12);
+      transform: translateY(-2px);
+    }
+    .invoice-card-number {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .invoice-card-client {
+      font-size: 14px;
+      color: var(--ink);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .invoice-card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--ink-light);
+      margin-bottom: 12px;
+    }
+    .invoice-card-amount {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .invoice-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .invoice-card-actions button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .invoices-loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--ink-light);
+    }
+    .invoices-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-light);
+    }
+    .invoices-empty h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -311,6 +384,7 @@
 <header>
   <div class="brand">Invoice<span>Flow</span></div>
   <div class="header-actions">
+    <button class="btn btn-outline btn-sm" id="btn-view-invoices">📋 View Invoices</button>
     <button class="btn btn-outline btn-sm" id="btn-settings">⚙ Settings</button>
   </div>
 </header>
@@ -425,6 +499,19 @@
         Save to Sheet
       </button>
       <button class="btn btn-primary" id="btn-print">🖨 Save / Print PDF</button>
+    </div>
+  </section>
+
+  <!-- SAVED INVOICES VIEW -->
+  <section id="invoices-view">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="card-title" style="margin: 0; border: none; padding: 0;">Saved Invoices</div>
+        <button class="btn btn-outline btn-sm" id="btn-back-to-create">← New Invoice</button>
+      </div>
+      <div id="invoices-container">
+        <div class="invoices-loading">Loading invoices...</div>
+      </div>
     </div>
   </section>
 
@@ -744,10 +831,128 @@ $('inv-currency').addEventListener('change', recalcTotals);
 $('tax-rate').addEventListener('input', recalcTotals);
 $('discount-amount').addEventListener('input', recalcTotals);
 
+/* ─ VIEW SAVED INVOICES ─ */
+async function loadInvoices() {
+  if (!SHEET_URL) {
+    showToast('No Sheet URL set — open Settings first', 'error');
+    return;
+  }
+  const container = $('invoices-container');
+  container.innerHTML = '<div class="invoices-loading">Loading invoices...</div>';
+  try {
+    const response = await fetch(SHEET_URL + '?action=getInvoices', {
+      method: 'GET',
+      mode: 'no-cors',
+    });
+    const text = await response.text();
+    const data = JSON.parse(text);
+    if (data.status === 'ok' && data.invoices && data.invoices.length > 0) {
+      displayInvoices(data.invoices);
+    } else {
+      container.innerHTML = '<div class="invoices-empty"><h3>No invoices yet</h3><p>Create your first invoice to see it here.</p></div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="invoices-empty"><h3>Error loading invoices</h3><p>Check your Sheet URL in Settings.</p></div>';
+  }
+}
+
+function displayInvoices(invoices) {
+  const container = $('invoices-container');
+  if (invoices.length === 0) {
+    container.innerHTML = '<div class="invoices-empty"><h3>No invoices yet</h3><p>Create your first invoice to see it here.</p></div>';
+    return;
+  }
+  container.innerHTML = '<div class="invoices-grid" id="invoices-grid"></div>';
+  const grid = $('invoices-grid');
+  invoices.forEach((inv, idx) => {
+    const card = document.createElement('div');
+    card.className = 'invoice-card';
+    const items = typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items || [];
+    const amount = inv.grandTotal || 0;
+    const cur = inv.currency || 'USD';
+    const syms = { BDT:'৳', USD:'$', EUR:'€', GBP:'£' };
+    const sym = syms[cur] || '';
+    card.innerHTML = `
+      <div class="invoice-card-number">${inv.number || 'INV'}</div>
+      <div class="invoice-card-client">${inv.toName || 'Client'}</div>
+      <div class="invoice-card-meta">
+        <span>${inv.date || '—'}</span>
+        <span class="badge badge-${(inv.status||'Draft').toLowerCase()}">${inv.status || 'Draft'}</span>
+      </div>
+      <div class="invoice-card-amount">${sym}${parseFloat(amount).toFixed(2)}</div>
+      <div class="invoice-card-actions">
+        <button class="btn btn-sm btn-outline" onclick="viewInvoiceDetail(${idx})">View</button>
+        <button class="btn btn-sm btn-outline" onclick="duplicateInvoice(${idx})">Duplicate</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  // Store invoices for detail view
+  window.savedInvoices = invoices;
+}
+
+function showInvoicesView() {
+  $('invoice-form-section').style.display = 'none';
+  $('print-preview').style.display = 'none';
+  $('invoices-view').style.display = 'block';
+  loadInvoices();
+  window.scrollTo(0, 0);
+}
+
+function backToCreate() {
+  $('invoices-view').style.display = 'none';
+  $('invoice-form-section').style.display = 'block';
+  $('print-preview').style.display = 'none';
+}
+
+function viewInvoiceDetail(idx) {
+  const inv = window.savedInvoices[idx];
+  if (!inv) return;
+  // Load invoice data into form
+  $('inv-number').value = inv.number || '';
+  $('inv-date').value = inv.date || '';
+  $('inv-due').value = inv.dueDate || '';
+  $('inv-status').value = inv.status || 'Draft';
+  $('inv-currency').value = inv.currency || 'BDT';
+  $('from-name').value = inv.fromName || '';
+  $('from-email').value = inv.fromEmail || '';
+  $('from-address').value = inv.fromAddress || '';
+  $('to-name').value = inv.toName || '';
+  $('to-email').value = inv.toEmail || '';
+  $('to-address').value = inv.toAddress || '';
+  $('tax-rate').value = inv.taxRate || 0;
+  $('discount-amount').value = inv.discount || 0;
+  $('inv-notes').value = inv.notes || '';
+  $('inv-terms').value = inv.terms || '';
+  // Clear and populate items
+  $('items-container').innerHTML = '';
+  itemCount = 0;
+  const items = typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items || [];
+  if (items.length > 0) {
+    items.forEach(it => addItem(it.desc || '', it.qty || 0, it.price || 0));
+  } else {
+    addItem('Service / Product Description', 1, 0);
+  }
+  recalcTotals();
+  backToCreate();
+}
+
+function duplicateInvoice(idx) {
+  viewInvoiceDetail(idx);
+  // Change invoice number for duplicate
+  const cur = parseInt($('inv-number').value.replace(/\D/g,'')) || 0;
+  $('inv-number').value = 'INV-' + String(cur + 1).padStart(3, '0');
+  showToast('Invoice duplicated — update number and save', 'success');
+}
+
 /* ─ INIT ─ */
 applyDefaults();
 addItem('Service / Product Description', 1, 0);
 if (SHEET_URL) $('config-banner').style.display = 'none';
+
+/* ─ WIRE UP NEW EVENTS ─ */
+$('btn-view-invoices').addEventListener('click', showInvoicesView);
+$('btn-back-to-create').addEventListener('click', backToCreate);
 </script>
 </body>
 </html>
