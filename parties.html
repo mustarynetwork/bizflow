@@ -151,7 +151,7 @@ function renderTable(list) {
       <td style="font-weight:600;color:${parseFloat(p.balance||0)<0?'var(--danger)':'var(--success)'}">${fmt.currency(p.balance||0)}</td>
       <td>
         <div class="td-actions">
-          <button class="btn btn-outline btn-sm btn-icon" onclick="openEdit('${p.id}')" title="সম্পাদনা">✏️</button>
+          <button class="btn btn-outline btn-sm btn-icon" onclick="openModal('${p.id}')" title="সম্পাদনা">✏️</button>
           <button class="btn btn-danger  btn-sm btn-icon" onclick="deleteParty('${p.id}')" title="মুছুন">🗑️</button>
         </div>
       </td>
@@ -233,7 +233,8 @@ async function saveParty() {
 // ── DELETE ──
 function deleteParty(id) {
   const p = parties.find(x => x.id === id);
-  confirm(`"${p?.name}" মুছে দেবেন?`, async () => {
+  window.confirm = undefined;
+  confirmDialog(`"${p?.name}" মুছে দেবেন?`, async () => {
     parties = parties.filter(x => x.id !== id);
     saveLocal();
     applyFilters();
