@@ -262,6 +262,9 @@
                   <div class="lbl">শুধু কার্টন মোড</div>
                   <div class="hint" id="ctn-mode-hint">বন্ধ: কার্টন + পিস আলাদা ইনপুট</div>
                 </div>
+                <div style="margin-left:auto;display:flex;gap:8px">
+                  <button class="btn btn-outline btn-sm" id="btn-load-all" type="button">📥 সব পণ্য লোড করুন</button>
+                </div>
               </div>
 
               <div class="items-hdr" id="items-hdr"></div>
@@ -478,6 +481,23 @@ function addOrderItem(name='', code='', qtyCtn='', qtyPcs='', freeCtn='', freePc
 
 function removeItem(btn){ btn.closest('.order-item-row').remove(); recalc(); }
 
+/* ── LOAD ALL PRODUCTS as rows, sorted by code ascending ── */
+function loadAllProducts() {
+  const active = products.filter(p=>p.status==='active');
+  if (!active.length) { toast('কোনো সক্রিয় পণ্য নেই','error'); return; }
+  // Sort by product code ascending (numeric-aware)
+  active.sort((a,b)=>{
+    const ca=(a.code||''), cb=(b.code||'');
+    return ca.localeCompare(cb, undefined, {numeric:true, sensitivity:'base'});
+  });
+  // Clear existing rows, then add one per product (qty blank)
+  document.getElementById('order-items-container').innerHTML='';
+  itemCount=0;
+  active.forEach(p=>addOrderItem(p.name, p.code, '', '', '', '', p.id));
+  recalc(); buildPrintInvoice();
+  toast(active.length+'টি পণ্য লোড হয়েছে','success');
+}
+
 function recalcRow(row) {
   const ps  = row.querySelector('.oi-product');
   const opt = ps.options[ps.selectedIndex];
@@ -518,7 +538,12 @@ function recalcRow(row) {
   }
 
   // Price display: carton price if available else piece price
-  const priceDisp = cPrice>0 ? (cPrice.toFixed(2)+'/ctn') : (usedPiecePrice?usedPiecePrice.toFixed(2)+'/pcs':'');
+  // PRICE column shows carton-equivalent price: usedPrice × cartonSize
+  // Fall back to product's cartonPrice field if usedPrice is 0
+  let cartonEquivPrice = 0;
+  if (usedPiecePrice > 0 && cSize > 0) cartonEquivPrice = usedPiecePrice * cSize;
+  else if (cPrice > 0)                 cartonEquivPrice = cPrice;
+  const priceDisp = cartonEquivPrice ? cartonEquivPrice.toFixed(2) : '';
 
   row.querySelector('.oi-totalqty').value = totalDisp;
   row.querySelector('.oi-price').value    = priceDisp;
@@ -594,7 +619,7 @@ function buildPrintInvoice() {
     const cPrice=parseFloat(row.dataset.cPrice)||0;
     const usedPrice=parseFloat(row.dataset.usedPrice)||0;
     const amt=parseFloat(row.querySelector('.oi-total').value)||0;
-    if(qtyPieces<=0 && !name) return;
+    if(qtyPieces<=0) return;
     sl++;
 
     // Decide display: whole cartons → carton units; mixed → pcs + total "ctn+pcs"
@@ -607,7 +632,7 @@ function buildPrintInvoice() {
       qtyDisp  = (qtyPieces/cSize)+' ctn';
       freeDisp = freePieces ? (freePieces/cSize)+' ctn' : '';
       totalDisp= (totalPieces/cSize)+' ctn';
-      priceDisp= cPrice>0 ? cPrice.toFixed(1) : (usedPrice*cSize).toFixed(1);
+      priceDisp= (usedPrice>0 && cSize>0) ? (usedPrice*cSize).toFixed(1) : (cPrice>0?cPrice.toFixed(1):'');
     } else {
       qtyDisp  = qtyPieces+' pcs';
       freeDisp = freePieces ? (freePieces+' pcs') : '';
@@ -615,7 +640,7 @@ function buildPrintInvoice() {
         const c=Math.floor(totalPieces/cSize), p=totalPieces%cSize;
         totalDisp = p===0 ? (c+' ctn') : (c+' ctn + '+p+' pcs');
       } else totalDisp = totalPieces+' pcs';
-      priceDisp= cPrice>0 ? cPrice.toFixed(1) : (usedPrice*Math.max(cSize,1)).toFixed(1);
+      priceDisp= (usedPrice>0 && cSize>0) ? (usedPrice*cSize).toFixed(1) : (cPrice>0?cPrice.toFixed(1):'');
     }
 
     const tr=document.createElement('tr');
@@ -838,6 +863,7 @@ document.getElementById('btn-save-order-2').addEventListener('click',saveOrder);
 document.getElementById('btn-print-order').addEventListener('click',()=>{buildPrintInvoice();window.print();});
 document.getElementById('btn-print-order-2').addEventListener('click',()=>{buildPrintInvoice();window.print();});
 document.getElementById('btn-add-item').addEventListener('click',()=>addOrderItem());
+document.getElementById('btn-load-all').addEventListener('click',loadAllProducts);
 document.getElementById('btn-export-list').addEventListener('click',exportOrders);
 document.getElementById('f-party').addEventListener('change',onPartyChange);
 document.getElementById('f-date').addEventListener('change',buildPrintInvoice);
