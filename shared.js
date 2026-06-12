@@ -8,7 +8,9 @@
 const BF = {
   version:  '1.2.0',
   appName:  'BizFlow',
-  sheetUrl: localStorage.getItem('bf_sheet_url') || '',
+  // Hardcoded Web App URL — so any new browser connects automatically.
+  // Super admin can still override it in Settings if redeployed.
+  sheetUrl: localStorage.getItem('bf_sheet_url') || 'https://script.google.com/macros/s/AKfycbwzmTsoJA0lhEeBd4md7BrRnAwb01PV8Xj0nJl_3SzHTGKNZOhE-BIfDPQ1pd2PgPiECg/exec',
   roles: {
     super: localStorage.getItem('bf_pw_super') || 'super123',
     admin: localStorage.getItem('bf_pw_admin') || 'admin123',
