@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>BizFlow — ক্রয় / বিক্রয়</title>
   <style>
+    /* ── SCREEN STYLES ── */
     .order-type-tabs{display:flex;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);width:fit-content}
     .order-tab{padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--surface);color:var(--ink2);transition:all .15s}
     .order-tab.active-purchase{background:#3b82f6;color:#fff}
     .order-tab.active-sales{background:#059669;color:#fff}
 
-    /* item row: product | code | totalqty | qty | free | eprice | amount | del */
-    .order-item-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .6fr .6fr .8fr .8fr 30px;gap:6px;margin-bottom:8px;align-items:center}
-    .order-item-row input,.order-item-row select{border:1.5px solid var(--border);border-radius:7px;padding:7px 8px;font-family:inherit;font-size:12px;color:var(--ink);outline:none;width:100%;transition:border-color .2s}
+    /* Item row: Product | Code | QTY | Free | TotalQTY | E.Price | Amount | del */
+    .order-item-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .7fr .8fr .9fr .9fr 30px;gap:6px;margin-bottom:8px;align-items:center}
+    .order-item-row input,.order-item-row select{border:1.5px solid var(--border);border-radius:8px;padding:8px 8px;font-family:inherit;font-size:13px;color:var(--ink);outline:none;width:100%;transition:border-color .2s}
     .order-item-row input:focus,.order-item-row select:focus{border-color:var(--accent)}
     .order-item-row input[readonly]{background:var(--bg);color:var(--ink2)}
-    .items-hdr{display:grid;grid-template-columns:1.6fr .7fr .7fr .6fr .6fr .8fr .8fr 30px;gap:6px;padding:0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink3);margin-bottom:6px}
-    @media(max-width:700px){.order-item-row{grid-template-columns:1.4fr .6fr .6fr .5fr .5fr .7fr .7fr 26px;gap:3px}.items-hdr{display:none}}
+    .items-hdr{display:grid;grid-template-columns:1.6fr .7fr .7fr .7fr .8fr .9fr .9fr 30px;gap:6px;padding:0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink3);margin-bottom:6px}
+    @media(max-width:760px){.order-item-row{grid-template-columns:1.4fr .6fr .6fr .6fr .7fr .8fr .8fr 26px;gap:4px}.items-hdr{display:none}}
 
     .summary-box{background:var(--bg);border-radius:12px;padding:18px}
     .sum-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px dashed var(--border)}
@@ -36,8 +37,11 @@
     .badge-partial{background:#fef9c3;color:#854d0e}
     .badge-due{background:#fee2e2;color:#dc2626}
 
-    /* ════════════ PRINT ════════════ */
+    /* ════════════════════════════════════════
+       PRINT — BIZFLOW / OLYMPIC INVOICE LAYOUT
+    ════════════════════════════════════════ */
     .print-only{display:none!important}
+
     @media print{
       .no-print{display:none!important}
       body{background:#fff;font-size:12px;margin:0;padding:0}
@@ -51,33 +55,44 @@
       .print-only{display:block!important}
       .card{box-shadow:none!important;border:none!important;padding:0!important;margin:0!important}
 
-      #print-invoice{display:block!important;font-family:Arial,sans-serif;color:#000;padding:4px}
+      #print-invoice{display:block!important;font-family:Arial,sans-serif;color:#000;padding:6px 4px}
+
+      /* Header */
       .pi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
-      .pi-biz-name{font-size:22px;font-weight:800;letter-spacing:.3px}
-      .pi-inv-label{font-size:20px;font-weight:800;letter-spacing:2px;text-align:right}
-      .pi-inv-no{font-size:12px;text-align:right;margin-top:3px}
-      .pi-blackline{border:none;border-top:2px solid #000;margin:2px 0 1px}
-      .pi-depo{font-style:italic;font-size:11px;line-height:1.1;margin:0 0 8px}
-      .pi-party-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #ccc}
-      .pi-party-type{font-size:11px;color:#666;margin-bottom:2px}
-      .pi-party-name{font-size:14px;font-weight:700}
-      .pi-party-addr{font-size:11px;color:#555;margin-top:1px}
-      .pi-date{font-size:12px;font-weight:600;text-align:right}
-      .pi-items-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;margin-bottom:5px}
+      .pi-brand{font-size:22px;font-weight:800;letter-spacing:-.5px}
+      .pi-invlabel{text-align:right}
+      .pi-invlabel .lbl{font-size:20px;font-weight:800;letter-spacing:2px}
+      .pi-invlabel .num{font-size:12px;margin-top:3px}
+      .pi-blackline{border:none;border-top:2px solid #000;margin:4px 0 2px}
+      /* Super depo line — minimal spacing, italic */
+      .pi-depo{font-style:italic;font-size:11px;line-height:1.1;margin:0 0 8px;padding:0}
+
+      /* Customer block */
+      .pi-cust{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px}
+      .pi-cust-label{font-size:11px;color:#555}
+      .pi-cust-name{font-size:14px;font-weight:700;margin:2px 0}
+      .pi-cust-addr{font-size:11px;color:#555}
+      .pi-cust-right{text-align:right;font-size:12px;font-weight:600}
+
+      /* Items table */
+      .pi-items-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;margin-bottom:4px}
       .pi-table{width:100%;border-collapse:collapse;margin-bottom:10px}
       .pi-table th{background:#f0f0f0;border:1px solid #000;padding:4px 6px;font-size:11px;text-align:left;font-weight:bold}
       .pi-table td{border:1px solid #000;padding:4px 6px;font-size:11px}
-      .pi-table .r{text-align:right}
       .pi-table .c{text-align:center}
-      .pi-footer{margin-top:8px;border-top:1px solid #ccc;padding-top:8px}
-      .pi-frow{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px}
-      .pi-frow .left{flex:1;color:#333}
-      .pi-frow .right{flex:0 0 160px;text-align:right;font-weight:600}
-      .pi-note{font-size:11px;font-style:italic;color:#444;margin-top:6px}
-      .pi-final{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:2px solid #000;font-size:12px;font-weight:700}
-      .pi-final span{flex:1;text-align:center}
-      .pi-final span:first-child{text-align:left}
-      .pi-final span:last-child{text-align:right}
+      .pi-table .r{text-align:right}
+
+      /* Totals area: left adjustments/payments, right invoice totals */
+      .pi-bottom{display:flex;gap:16px;margin-top:8px}
+      .pi-bleft{flex:1;font-size:11px}
+      .pi-bleft .line{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed #ccc}
+      .pi-bleft .line.tot{font-weight:700;border-bottom:none;border-top:1px solid #000;margin-top:2px;padding-top:4px}
+      .pi-bleft .grp-title{font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#666;margin:8px 0 2px}
+      .pi-bright{width:210px;font-size:12px}
+      .pi-bright .line{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #ddd}
+      .pi-bright .line.bal{font-weight:800;font-size:13px;border-top:2px solid #000;border-bottom:none;margin-top:2px;padding-top:5px}
+      .pi-note{margin-top:10px;font-size:11px;border-top:1px dashed #999;padding-top:6px}
+      .pi-note b{font-style:normal}
     }
   </style>
 </head>
@@ -86,6 +101,7 @@
   <nav class="bf-nav" id="bf-nav"></nav>
   <div class="bf-main">
 
+    <!-- TOPBAR -->
     <div class="bf-topbar no-print">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="bf-menu-btn" id="bf-menu-btn">☰</button>
@@ -148,68 +164,70 @@
       <!-- ════ ORDER FORM ════ -->
       <section id="order-form-section" style="display:none">
 
-        <!-- ═══ PRINT INVOICE ═══ -->
+        <!-- ═══ PRINT INVOICE (print only) ═══ -->
         <div id="print-invoice" class="print-only">
-          <!-- Top: supplier name left, INVOICE/PO + order no right -->
           <div class="pi-top">
-            <div class="pi-biz-name" id="pi-biz-name">BizFlow</div>
-            <div>
-              <div class="pi-inv-label" id="pi-inv-label">INVOICE</div>
-              <div class="pi-inv-no" id="pi-inv-no"></div>
+            <div class="pi-brand" id="pi-brand">BizFlow</div>
+            <div class="pi-invlabel">
+              <div class="lbl" id="pi-invtype">INVOICE</div>
+              <div class="num" id="pi-invno"></div>
             </div>
           </div>
           <hr class="pi-blackline"/>
-          <!-- Super Depo line (italic, supplier info) -->
-          <div class="pi-depo" id="pi-depo"></div>
+          <div class="pi-depo" id="pi-depo">Super Depo: Mustary Enterprise, Chakaria, Coxsbazar, 01857274119</div>
 
-          <!-- Party + date -->
-          <div class="pi-party-row">
+          <div class="pi-cust">
             <div>
-              <div class="pi-party-type" id="pi-party-type">গ্রাহক</div>
-              <div class="pi-party-name" id="pi-party-name"></div>
-              <div class="pi-party-addr" id="pi-party-addr"></div>
+              <div class="pi-cust-label" id="pi-cust-label">গ্রাহক</div>
+              <div class="pi-cust-name" id="pi-cust-name"></div>
+              <div class="pi-cust-addr" id="pi-cust-addr"></div>
             </div>
-            <div class="pi-date" id="pi-date"></div>
+            <div class="pi-cust-right" id="pi-date"></div>
           </div>
 
           <div class="pi-items-title">পণ্য তালিকা</div>
           <table class="pi-table">
             <thead>
               <tr>
-                <th class="c" style="width:26px">Sl.</th>
-                <th>Items</th>
-                <th class="c" style="width:48px">Code</th>
-                <th class="c" style="width:55px">Total QTY</th>
-                <th class="c" style="width:42px">QTY</th>
-                <th class="c" style="width:40px">Free</th>
-                <th class="c" style="width:55px">E. Price</th>
-                <th class="c" style="width:65px">Amount</th>
+                <th class="c" style="width:30px">SL.</th>
+                <th>ITEMS</th>
+                <th class="c" style="width:55px">CODE</th>
+                <th class="c" style="width:60px">TOTAL QTY</th>
+                <th class="c" style="width:45px">QTY</th>
+                <th class="c" style="width:45px">FREE</th>
+                <th class="c" style="width:60px">E. PRICE</th>
+                <th class="c" style="width:70px">AMOUNT</th>
               </tr>
             </thead>
             <tbody id="pi-items"></tbody>
           </table>
 
-          <!-- Footer: deductions+total | payments+total | note | final row -->
-          <div class="pi-footer">
-            <div class="pi-frow">
-              <div class="left" id="pi-deductions"></div>
-              <div class="right" id="pi-deduction-total"></div>
+          <div class="pi-bottom">
+            <div class="pi-bleft">
+              <div class="grp-title">কর্তন / সমন্বয় (Adjustments)</div>
+              <div id="pi-adj-lines"></div>
+              <div class="line tot"><span>মোট কর্তন</span><span id="pi-adj-total">৳0.00</span></div>
+
+              <div class="grp-title">জমা (Payments)</div>
+              <div id="pi-pay-lines"></div>
+              <div class="line tot"><span>মোট জমা</span><span id="pi-pay-total">৳0.00</span></div>
+
+              <div class="pi-note" id="pi-note-block" style="display:none">
+                <b>নোট:</b> <span id="pi-note"></span>
+              </div>
             </div>
-            <div class="pi-frow">
-              <div class="left" id="pi-payments"></div>
-              <div class="right" id="pi-payment-total"></div>
-            </div>
-            <div class="pi-note" id="pi-note"></div>
-            <div class="pi-final">
-              <span id="pi-grand"></span>
-              <span id="pi-prevdue"></span>
-              <span id="pi-totalpaid"></span>
-              <span id="pi-balance"></span>
+            <div class="pi-bright">
+              <div class="line"><span>সাবটোটাল</span><span id="pi-subtotal">৳0.00</span></div>
+              <div class="line"><span>ছাড়</span><span id="pi-discount">৳0.00</span></div>
+              <div class="line"><span>এই অর্ডার মোট</span><span id="pi-grand">৳0.00</span></div>
+              <div class="line"><span>পূর্ববর্তী বাকি</span><span id="pi-prevdue">৳0.00</span></div>
+              <div class="line"><span>মোট জমা + কর্তন</span><span id="pi-totalpaid">৳0.00</span></div>
+              <div class="line bal"><span>অবশিষ্ট বাকি</span><span id="pi-balance">৳0.00</span></div>
             </div>
           </div>
         </div>
 
-        <!-- Screen actions -->
+        <!-- Screen form actions bar -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px" class="no-print">
           <div style="display:flex;align-items:center;gap:10px">
             <button class="btn btn-outline btn-sm" id="btn-back-list">← তালিকায় ফিরুন</button>
@@ -222,7 +240,8 @@
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-          <!-- LEFT -->
+
+          <!-- LEFT COLUMN -->
           <div>
             <div class="card no-print">
               <div class="card-title" style="margin-bottom:14px">অর্ডার তথ্য</div>
@@ -251,22 +270,19 @@
               <div class="items-hdr">
                 <span>পণ্য</span>
                 <span style="text-align:right">কোড</span>
-                <span style="text-align:right">মোট QTY</span>
-                <span style="text-align:right">QTY</span>
-                <span style="text-align:right">Free</span>
+                <span style="text-align:right">পরিমাণ</span>
+                <span style="text-align:right">ফ্রি</span>
+                <span style="text-align:right">মোট পরিমাণ</span>
                 <span style="text-align:right">মূল্য</span>
                 <span style="text-align:right">মোট</span>
                 <span></span>
               </div>
               <div id="order-items-container"></div>
               <button class="btn btn-outline btn-sm" id="btn-add-item" style="margin-top:8px">+ পণ্য যোগ করুন</button>
-              <div style="font-size:11px;color:var(--ink3);margin-top:8px;line-height:1.5">
-                💡 অফার পণ্যে: শুধু QTY দিলে = নিয়মিত মূল্য | QTY ও Free দুটোই দিলে = কার্যকর মূল্য
-              </div>
             </div>
           </div>
 
-          <!-- RIGHT -->
+          <!-- RIGHT COLUMN -->
           <div class="screen-only">
             <div class="card">
               <div class="card-title" style="margin-bottom:12px">পার্টির বর্তমান হিসাব</div>
@@ -274,6 +290,7 @@
                 <span style="font-size:13px;color:var(--ink2)">পূর্ববর্তী বাকি</span>
                 <span class="balance-pill balance-zero" id="prev-due-pill">৳0.00</span>
               </div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:6px">পার্টি নির্বাচনে স্বয়ংক্রিয় আসবে</div>
             </div>
 
             <div class="card">
@@ -306,16 +323,13 @@
                   <label><input type="checkbox" id="pay-mobile" style="accent-color:var(--accent);margin-right:4px"> মোবাইল ব্যাংকিং (৳)</label>
                   <input type="number" class="sum-input" id="f-mobile" value="0" min="0"/>
                 </div>
-                <div class="sum-row" style="font-weight:700">
-                  <label style="color:var(--success)">মোট জমা</label>
-                  <span class="sum-val" id="f-payment-total" style="color:var(--success)">৳0.00</span>
-                </div>
 
                 <div class="deduction-section">
                   <div class="deduction-title">➖ কর্তন / সমন্বয়</div>
                   <div class="sum-row"><label style="color:var(--success)">বেতন — Salary (৳)</label><input type="number" class="sum-input" id="f-salary" value="0" min="0"/></div>
                   <div class="sum-row"><label style="color:var(--success)">ভ্রমণ ভাতা — TA (৳)</label><input type="number" class="sum-input" id="f-ta"     value="0" min="0"/></div>
                   <div class="sum-row"><label style="color:var(--success)">দৈনিক ভাতা — DA (৳)</label><input type="number" class="sum-input" id="f-da"     value="0" min="0"/></div>
+                  <div class="sum-row"><label style="color:var(--success)">ক্ষতি — Damage (৳)</label><input type="number" class="sum-input" id="f-damage" value="0" min="0"/></div>
                   <div class="sum-row"><label style="color:var(--success)">অন্যান্য কর্তন (৳)</label><input type="number" class="sum-input" id="f-others"  value="0" min="0"/></div>
                   <div class="sum-row" style="border-bottom:none;margin-top:4px">
                     <label style="font-weight:700;color:var(--success)">মোট কর্তন</label>
@@ -333,12 +347,13 @@
             </div>
 
             <div class="card">
-              <div class="card-title" style="margin-bottom:10px">নোট</div>
+              <div class="card-title" style="margin-bottom:10px">নোট / Pending</div>
               <div class="field"><textarea id="f-notes" placeholder="যেমন: 579-5K, 581-10B Pending" style="min-height:56px"></textarea></div>
             </div>
           </div>
         </div>
 
+        <!-- Bottom action bar -->
         <div class="no-print" style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
           <button class="btn btn-outline"  id="btn-back-list-2">বাতিল</button>
           <button class="btn btn-outline"  id="btn-print-order-2">🖨 Print</button>
@@ -355,6 +370,7 @@
 <script>
 buildNav('orders');
 
+/* ── STATE ── */
 let currentType = 'sales';
 let orders   = JSON.parse(localStorage.getItem('bf_orders')   || '[]');
 let parties  = JSON.parse(localStorage.getItem('bf_parties')  || '[]');
@@ -362,6 +378,7 @@ let products = JSON.parse(localStorage.getItem('bf_products') || '[]');
 let editOrderId = null;
 let itemCount   = 0;
 
+/* ── TABS ── */
 function setOrderType(type) {
   currentType = type;
   document.getElementById('tab-sales').className    = 'order-tab' + (type==='sales'    ? ' active-sales'    : '');
@@ -370,6 +387,7 @@ function setOrderType(type) {
   updateListStats();
 }
 
+/* ── NAVIGATION ── */
 function showList() {
   document.getElementById('order-list-section').style.display  = '';
   document.getElementById('order-form-section').style.display  = 'none';
@@ -419,6 +437,7 @@ function generateOrderId() {
   return `${prefix}-${String(last+1).padStart(4,'0')}`;
 }
 
+/* ── PARTY DROPDOWN ── */
 function populatePartyDropdown(selectedId='') {
   const sel = document.getElementById('f-party');
   const rel = parties.filter(p => currentType==='sales'
@@ -453,99 +472,117 @@ function getPrevDue() {
   return parseFloat(document.getElementById('f-prev-due-sum').textContent.replace(/[^\d.-]/g,''))||0;
 }
 
-/* ── LINE ITEMS — product, code, totalQty, qty, free, eprice, amount ── */
-function addOrderItem(name='', code='', totalQty='', qty='', free='', price='', productId='') {
+/* ══════════════════════════════════════════
+   LINE ITEMS
+   Columns: Product | Code | QTY | Free | TotalQTY(auto) | E.Price(auto) | Amount(auto)
+   Pricing logic for offered products:
+   - QTY only (no Free)      → effectivePrice × QTY
+   - QTY + Free both entered → regularPrice  × QTY
+   - non-offered             → price × QTY
+   Total QTY = QTY + Free (display only, not used in amount)
+══════════════════════════════════════════ */
+function addOrderItem(name='', code='', qty='', free='', productId='') {
   itemCount++;
   const row = document.createElement('div');
   row.className = 'order-item-row';
 
   const prodOpts = products.filter(p=>p.status==='active')
-    .map(p=>`<option value="${p.id}" data-name="${p.name}" data-code="${p.code||''}" data-price="${p.price||0}" data-eprice="${p.effectivePrice||p.price||0}" data-hasoffer="${p.hasOffer?'1':'0'}" ${p.id===productId?'selected':''}>${p.code?'['+p.code+'] ':''}${p.name}</option>`).join('');
+    .map(p=>`<option value="${p.id}"
+        data-name="${p.name}"
+        data-code="${p.code||''}"
+        data-price="${p.price||0}"
+        data-eff="${p.effectivePrice||p.price||0}"
+        data-offer="${(p.hasOffer===true||p.hasOffer==='true')?'1':'0'}"
+        ${p.id===productId?'selected':''}>${p.code?'['+p.code+'] ':''}${p.name}</option>`).join('');
 
   row.innerHTML = `
     <select class="oi-product"><option value="">— পণ্য —</option>${prodOpts}</select>
-    <input type="text"   class="oi-code"     placeholder="কোড"  value="${code}"     style="text-align:right"/>
-    <input type="number" class="oi-totalqty" placeholder="মোট"  value="${totalQty}" min="0" style="text-align:right"/>
-    <input type="number" class="oi-qty"      placeholder="QTY"  value="${qty}"      min="0" style="text-align:right"/>
-    <input type="number" class="oi-free"     placeholder="Free" value="${free}"     min="0" style="text-align:right"/>
-    <input type="number" class="oi-price"    placeholder="মূল্য" value="${price}"    min="0" step="0.01" readonly style="text-align:right;background:var(--bg)"/>
+    <input type="text"   class="oi-code"  placeholder="কোড"  value="${code}"  style="text-align:right"/>
+    <input type="number" class="oi-qty"   placeholder="0" value="${qty}"  min="0" step="any" style="text-align:right"/>
+    <input type="number" class="oi-free"  placeholder="0" value="${free}" min="0" step="any" style="text-align:right"/>
+    <input type="number" class="oi-totalqty" readonly value="" style="text-align:right;background:var(--bg)"/>
+    <input type="number" class="oi-price"    readonly value="" style="text-align:right;background:var(--bg);font-weight:600"/>
     <input type="number" class="oi-total"    readonly value="" style="text-align:right;background:var(--bg);font-weight:600"/>
     <button class="no-print" onclick="removeItem(this)" title="বাদ দিন"
-      style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:18px;width:30px;height:30px;border-radius:8px">×</button>`;
+      style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:18px;width:30px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center">×</button>`;
 
   const ps = row.querySelector('.oi-product');
+  if (productId) {
+    const p = products.find(x=>x.id===productId);
+    if (p) { row.querySelector('.oi-code').value = p.code||code||''; }
+  }
   ps.addEventListener('change', () => {
-    const o = ps.options[ps.selectedIndex];
-    if (o.dataset.code) row.querySelector('.oi-code').value = o.dataset.code;
-    priceRow(row);
+    const o=ps.options[ps.selectedIndex];
+    if(o.dataset.code) row.querySelector('.oi-code').value=o.dataset.code;
+    recalcRow(row);
   });
-  row.querySelector('.oi-code').addEventListener('input',     () => buildPrintInvoice());
-  row.querySelector('.oi-totalqty').addEventListener('input', () => buildPrintInvoice());
-  row.querySelector('.oi-qty').addEventListener('input',      () => priceRow(row));
-  row.querySelector('.oi-free').addEventListener('input',     () => priceRow(row));
+  row.querySelector('.oi-code').addEventListener('input',  buildPrintInvoice);
+  row.querySelector('.oi-qty').addEventListener('input',   () => recalcRow(row));
+  row.querySelector('.oi-free').addEventListener('input',  () => recalcRow(row));
 
   document.getElementById('order-items-container').appendChild(row);
-  if (productId) priceRow(row); else recalc();
-}
-
-/* ── SMART PRICING ──
-   Offered product: only QTY → regular price; QTY+Free → effective price.
-   Non-offered product: always regular price.
-*/
-function priceRow(row) {
-  const ps  = row.querySelector('.oi-product');
-  const opt = ps.options[ps.selectedIndex];
-  const qty  = parseFloat(row.querySelector('.oi-qty').value)||0;
-  const free = parseFloat(row.querySelector('.oi-free').value)||0;
-  let price = 0;
-
-  if (opt && opt.value) {
-    const regular   = parseFloat(opt.dataset.price)  || 0;
-    const effective = parseFloat(opt.dataset.eprice) || regular;
-    const hasOffer  = opt.dataset.hasoffer === '1';
-    if (hasOffer && qty > 0 && free > 0) {
-      price = effective;   // both qty & free → effective price
-    } else {
-      price = regular;     // only qty (or no offer) → regular price
-    }
-    row.querySelector('.oi-price').value = price.toFixed(2);
-  } else {
-    // manual product: allow manual price editing
-    row.querySelector('.oi-price').removeAttribute('readonly');
-    row.querySelector('.oi-price').style.background = '#fff';
-    price = parseFloat(row.querySelector('.oi-price').value)||0;
-  }
-
-  row.querySelector('.oi-total').value = (qty * price).toFixed(2);
-  recalc();
+  recalcRow(row);
 }
 
 function removeItem(btn) { btn.closest('.order-item-row').remove(); recalc(); }
 
+function recalcRow(row) {
+  const ps    = row.querySelector('.oi-product');
+  const opt   = ps.options[ps.selectedIndex];
+  const qty   = parseFloat(row.querySelector('.oi-qty').value)||0;
+  const free  = parseFloat(row.querySelector('.oi-free').value)||0;
+
+  // Determine prices from selected product
+  let regPrice = 0, effPrice = 0, isOffer = false;
+  if (opt && opt.value) {
+    regPrice = parseFloat(opt.dataset.price)||0;
+    effPrice = parseFloat(opt.dataset.eff)||regPrice;
+    isOffer  = opt.dataset.offer==='1';
+  }
+
+  // Pricing logic
+  let usedPrice;
+  if (isOffer) {
+    if (free > 0) usedPrice = regPrice;   // both qty + free → regular price
+    else          usedPrice = effPrice;   // qty only → effective price
+  } else {
+    usedPrice = regPrice;                 // non-offered → regular price
+  }
+
+  const totalQty = qty + free;
+  const amount   = qty * usedPrice;
+
+  row.querySelector('.oi-totalqty').value = totalQty || '';
+  row.querySelector('.oi-price').value    = usedPrice ? usedPrice.toFixed(2) : '';
+  row.querySelector('.oi-total').value    = amount.toFixed(2);
+
+  recalc();
+}
+
+/* ── RECALC ALL TOTALS ── */
 function recalc() {
   let subtotal=0;
   document.querySelectorAll('.oi-total').forEach(el => subtotal+=parseFloat(el.value)||0);
-  const discount  = parseFloat(document.getElementById('f-discount').value)||0;
-  const grand     = Math.max(0, subtotal-discount);
-  const prevDue   = getPrevDue();
-  const totalDue  = grand+prevDue;
-  const cash      = parseFloat(document.getElementById('f-cash').value)  ||0;
-  const bank      = parseFloat(document.getElementById('f-bank').value)  ||0;
-  const mobile    = parseFloat(document.getElementById('f-mobile').value)||0;
-  const salary    = parseFloat(document.getElementById('f-salary').value)||0;
-  const ta        = parseFloat(document.getElementById('f-ta').value)    ||0;
-  const da        = parseFloat(document.getElementById('f-da').value)    ||0;
-  const others    = parseFloat(document.getElementById('f-others').value)||0;
-  const payTotal  = cash+bank+mobile;
-  const dedTotal  = salary+ta+da+others;
-  const totalPaid = payTotal+dedTotal;
-  const balance   = totalDue-totalPaid;
+  const discount    = parseFloat(document.getElementById('f-discount').value)||0;
+  const grand       = Math.max(0, subtotal-discount);
+  const prevDue     = getPrevDue();
+  const totalDue    = grand+prevDue;
+  const cash        = parseFloat(document.getElementById('f-cash').value)  ||0;
+  const bank        = parseFloat(document.getElementById('f-bank').value)  ||0;
+  const mobile      = parseFloat(document.getElementById('f-mobile').value)||0;
+  const salary      = parseFloat(document.getElementById('f-salary').value)||0;
+  const ta          = parseFloat(document.getElementById('f-ta').value)    ||0;
+  const da          = parseFloat(document.getElementById('f-da').value)    ||0;
+  const damage      = parseFloat(document.getElementById('f-damage').value)||0;
+  const others      = parseFloat(document.getElementById('f-others').value)||0;
+  const totalDeduc  = salary+ta+da+damage+others;
+  const totalPaid   = cash+bank+mobile+totalDeduc;
+  const balance     = totalDue-totalPaid;
 
   document.getElementById('f-subtotal').textContent         = fmt.currency(subtotal);
   document.getElementById('f-grand-total').textContent      = fmt.currency(grand);
   document.getElementById('f-total-due').textContent        = fmt.currency(totalDue);
-  document.getElementById('f-payment-total').textContent    = fmt.currency(payTotal);
-  document.getElementById('f-total-deductions').textContent = fmt.currency(dedTotal);
+  document.getElementById('f-total-deductions').textContent = fmt.currency(totalDeduc);
   document.getElementById('f-total-paid').textContent       = fmt.currency(totalPaid);
 
   const balEl = document.getElementById('f-balance');
@@ -555,45 +592,37 @@ function recalc() {
   buildPrintInvoice();
 }
 
-/* ══ BUILD PRINT INVOICE ══ */
+/* ══════════════════════════════════════════
+   BUILD PRINT INVOICE
+══════════════════════════════════════════ */
 function buildPrintInvoice() {
-  const bizName  = localStorage.getItem('bf_biz_name')    || 'BizFlow';
-  const bizAddr  = localStorage.getItem('bf_biz_address') || '';
-  const bizPhone = localStorage.getItem('bf_biz_phone')   || '';
-  const date     = document.getElementById('f-date').value;
+  const bizName  = localStorage.getItem('bf_biz_name') || 'BizFlow';
   const orderId  = document.getElementById('f-order-id').value;
+  const date     = document.getElementById('f-date').value;
   const partySel = document.getElementById('f-party');
   const party    = parties.find(p=>p.id===partySel.value)||{};
 
-  // Header: supplier (business) always
-  document.getElementById('pi-biz-name').textContent = bizName;
-  document.getElementById('pi-inv-label').textContent = currentType==='sales' ? 'INVOICE' : 'PURCHASE ORDER';
-  document.getElementById('pi-inv-no').textContent = 'অর্ডার নং: ' + orderId;
-
-  // Super Depo line — supplier info, italic
-  document.getElementById('pi-depo').textContent =
-    'Super Depo: ' + [bizName, bizAddr, bizPhone].filter(Boolean).join(', ');
-
-  // Party block: sales→customer, purchase→business(party=supplier)
-  document.getElementById('pi-party-type').textContent = currentType==='sales' ? 'গ্রাহক' : 'সরবরাহকারী';
-  document.getElementById('pi-party-name').textContent = party.name || '';
-  document.getElementById('pi-party-addr').textContent =
-    [party.address, party.area, party.phone].filter(Boolean).join(' | ');
-  document.getElementById('pi-date').textContent = 'তারিখ: ' + (date ? new Date(date).toLocaleDateString('en-GB') : '');
+  document.getElementById('pi-brand').textContent    = bizName;
+  document.getElementById('pi-invtype').textContent  = currentType==='sales' ? 'INVOICE' : 'PURCHASE ORDER';
+  document.getElementById('pi-invno').textContent    = 'অর্ডার নং: ' + orderId;
+  document.getElementById('pi-cust-label').textContent = currentType==='sales' ? 'গ্রাহক' : 'সরবরাহকারী';
+  document.getElementById('pi-cust-name').textContent  = party.name || '';
+  document.getElementById('pi-cust-addr').textContent  = [party.address, party.area, party.phone].filter(Boolean).join(' | ');
+  document.getElementById('pi-date').textContent       = date ? ('তারিখ: ' + new Date(date).toLocaleDateString('en-CA')) : '';
 
   // Items
   const tbody = document.getElementById('pi-items');
   tbody.innerHTML = '';
-  let sl=0;
+  let sl = 0;
   document.querySelectorAll('.order-item-row').forEach(row => {
-    const ps   = row.querySelector('.oi-product');
-    const name = ps.value ? (ps.options[ps.selectedIndex]?.dataset?.name || '') : '';
-    const code = row.querySelector('.oi-code').value||'';
-    const totalQty = row.querySelector('.oi-totalqty').value||'';
-    const qty  = parseFloat(row.querySelector('.oi-qty').value)||0;
-    const free = parseFloat(row.querySelector('.oi-free').value)||0;
-    const price= parseFloat(row.querySelector('.oi-price').value)||0;
-    const amt  = qty*price;
+    const ps    = row.querySelector('.oi-product');
+    const name  = ps.value ? (ps.options[ps.selectedIndex]?.dataset?.name || '') : '';
+    const code  = row.querySelector('.oi-code').value || '';
+    const qty   = parseFloat(row.querySelector('.oi-qty').value)||0;
+    const free  = parseFloat(row.querySelector('.oi-free').value)||0;
+    const totalQ= parseFloat(row.querySelector('.oi-totalqty').value)||0;
+    const price = parseFloat(row.querySelector('.oi-price').value)||0;
+    const amt   = parseFloat(row.querySelector('.oi-total').value)||0;
     if (qty<=0 && !name) return;
     sl++;
     const tr=document.createElement('tr');
@@ -601,68 +630,82 @@ function buildPrintInvoice() {
       '<td class="c">'+sl+'</td>'+
       '<td>'+name+'</td>'+
       '<td class="c">'+code+'</td>'+
-      '<td class="r">'+(totalQty||qty)+'</td>'+
-      '<td class="r">'+qty+'</td>'+
+      '<td class="r">'+(totalQ||'')+'</td>'+
+      '<td class="r">'+(qty||'')+'</td>'+
       '<td class="r">'+(free||'')+'</td>'+
-      '<td class="r">'+price.toFixed(1)+'</td>'+
+      '<td class="r">'+(price?price.toFixed(1):'')+'</td>'+
       '<td class="r">'+amt.toFixed(1)+'</td>';
     tbody.appendChild(tr);
   });
 
-  // Totals
-  const fv=id=>parseFloat(document.getElementById(id)?.value)||0;
-  let subtotal=0; document.querySelectorAll('.oi-total').forEach(el=>subtotal+=parseFloat(el.value)||0);
-  const discount=fv('f-discount');
-  const grand=Math.max(0,subtotal-discount);
-  const prevDue=getPrevDue();
-  const cash=fv('f-cash'), bank=fv('f-bank'), mobile=fv('f-mobile');
-  const salary=fv('f-salary'),ta=fv('f-ta'),da=fv('f-da'),others=fv('f-others');
-  const dedTotal=salary+ta+da+others;
-  const payTotal=cash+bank+mobile;
-  const totalPaid=dedTotal+payTotal;
-  const balance=(grand+prevDue)-totalPaid;
+  // Numbers
+  const fv = id => parseFloat(document.getElementById(id)?.value)||0;
+  let subtotal=0;
+  document.querySelectorAll('.oi-total').forEach(el=>subtotal+=parseFloat(el.value)||0);
+  const discount = fv('f-discount');
+  const grand    = Math.max(0, subtotal-discount);
+  const prevDue  = getPrevDue();
+  const cash     = fv('f-cash'), bank=fv('f-bank'), mobile=fv('f-mobile');
+  const salary=fv('f-salary'), ta=fv('f-ta'), da=fv('f-da'), damage=fv('f-damage'), others=fv('f-others');
+  const adjTotal = salary+ta+da+damage+others;
+  const payTotal = cash+bank+mobile;
+  const totalPaid= adjTotal+payTotal;
+  const balance  = (grand+prevDue)-totalPaid;
 
-  const C=v=>'৳'+v.toFixed(1);
-  // Deduction line + total inline
-  const dParts=[];
-  if(salary)dParts.push('বেতন: '+C(salary));
-  if(ta)dParts.push('TA: '+C(ta));
-  if(da)dParts.push('DA: '+C(da));
-  if(others)dParts.push('অন্যান্য: '+C(others));
-  document.getElementById('pi-deductions').textContent = dParts.length?dParts.join(' | '):'কর্তন: —';
-  document.getElementById('pi-deduction-total').textContent = 'মোট কর্তন: '+C(dedTotal);
-  // Payment line + total inline
-  const pParts=[];
-  if(cash)pParts.push('নগদ: '+C(cash));
-  if(bank)pParts.push('ব্যাংক: '+C(bank));
-  if(mobile)pParts.push('মোবাইল: '+C(mobile));
-  document.getElementById('pi-payments').textContent = pParts.length?pParts.join(' | '):'জমা: —';
-  document.getElementById('pi-payment-total').textContent = 'মোট জমা: '+C(payTotal);
+  // Adjustment lines (only non-zero)
+  const adjLines=[];
+  if(salary) adjLines.push(['বেতন (Salary)',salary]);
+  if(ta)     adjLines.push(['ভ্রমণ ভাতা (TA)',ta]);
+  if(da)     adjLines.push(['দৈনিক ভাতা (DA)',da]);
+  if(damage) adjLines.push(['ক্ষতি (Damage)',damage]);
+  if(others) adjLines.push(['অন্যান্য (Others)',others]);
+  document.getElementById('pi-adj-lines').innerHTML = adjLines.length
+    ? adjLines.map(a=>`<div class="line"><span>${a[0]}</span><span>${fmt.currency(a[1])}</span></div>`).join('')
+    : '<div class="line"><span style="color:#999">—</span><span></span></div>';
+  document.getElementById('pi-adj-total').textContent = fmt.currency(adjTotal);
+
+  // Payment lines (only non-zero)
+  const payLines=[];
+  if(cash)   payLines.push(['নগদ (Cash)',cash]);
+  if(bank)   payLines.push(['ব্যাংক (Bank)',bank]);
+  if(mobile) payLines.push(['মোবাইল ব্যাংকিং',mobile]);
+  document.getElementById('pi-pay-lines').innerHTML = payLines.length
+    ? payLines.map(a=>`<div class="line"><span>${a[0]}</span><span>${fmt.currency(a[1])}</span></div>`).join('')
+    : '<div class="line"><span style="color:#999">—</span><span></span></div>';
+  document.getElementById('pi-pay-total').textContent = fmt.currency(payTotal);
+
+  // Right totals
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=fmt.currency(v);};
+  set('pi-subtotal',subtotal);
+  set('pi-discount',discount);
+  set('pi-grand',grand);
+  set('pi-prevdue',prevDue);
+  set('pi-totalpaid',totalPaid);
+  set('pi-balance',balance);
+
   // Note
-  const note=document.getElementById('f-notes').value||'';
-  document.getElementById('pi-note').textContent = note ? 'নোট: '+note : '';
-  // Final row
-  document.getElementById('pi-grand').textContent    = 'অর্ডার মোট: '+C(grand);
-  document.getElementById('pi-prevdue').textContent  = 'পূর্ববর্তী বাকি: '+C(prevDue);
-  document.getElementById('pi-totalpaid').textContent= 'মোট জমা+কর্তন: '+C(totalPaid);
-  document.getElementById('pi-balance').textContent  = 'অবশিষ্ট বাকি: '+C(balance);
+  const note=document.getElementById('f-notes').value;
+  if(note){ document.getElementById('pi-note').textContent=note; document.getElementById('pi-note-block').style.display=''; }
+  else    { document.getElementById('pi-note-block').style.display='none'; }
 }
 
+/* ── COLLECT FORM DATA ── */
 function collectFormData() {
   const partyId = document.getElementById('f-party').value;
   const party   = parties.find(p=>p.id===partyId)||{};
   const items   = [];
   document.querySelectorAll('.order-item-row').forEach(row => {
-    const ps   = row.querySelector('.oi-product');
-    const qty  = parseFloat(row.querySelector('.oi-qty').value)||0;
-    const price= parseFloat(row.querySelector('.oi-price').value)||0;
-    const tot  = parseFloat(row.querySelector('.oi-total').value)||0;
+    const ps    = row.querySelector('.oi-product');
+    const code  = row.querySelector('.oi-code').value;
+    const qty   = parseFloat(row.querySelector('.oi-qty').value)||0;
+    const free  = parseFloat(row.querySelector('.oi-free').value)||0;
+    const totalQ= parseFloat(row.querySelector('.oi-totalqty').value)||0;
+    const price = parseFloat(row.querySelector('.oi-price').value)||0;
+    const tot   = parseFloat(row.querySelector('.oi-total').value)||0;
     if (qty>0) items.push({
       productId:   ps.value,
       productName: ps.value ? (ps.options[ps.selectedIndex]?.dataset?.name || '') : '',
-      code:     row.querySelector('.oi-code').value,
-      totalQty: row.querySelector('.oi-totalqty').value,
-      qty, free: row.querySelector('.oi-free').value, price, total: tot
+      code, qty, free, totalQty:totalQ, price, total: tot
     });
   });
   const subtotal  = items.reduce((s,i)=>s+i.total,0);
@@ -676,8 +719,9 @@ function collectFormData() {
   const salary    = parseFloat(document.getElementById('f-salary').value)||0;
   const ta        = parseFloat(document.getElementById('f-ta').value)    ||0;
   const da        = parseFloat(document.getElementById('f-da').value)    ||0;
+  const damage    = parseFloat(document.getElementById('f-damage').value)||0;
   const others    = parseFloat(document.getElementById('f-others').value)||0;
-  const totalDeduc = salary+ta+da+others;
+  const totalDeduc = salary+ta+da+damage+others;
   const totalPaid  = cash+bank+mobile+totalDeduc;
   const balance    = totalDue-totalPaid;
   const payModes   = [];
@@ -694,7 +738,7 @@ function collectFormData() {
     subtotal, discount, grandTotal:grand,
     prevDue, totalDue,
     cash, bankDeposit:bank, mobile,
-    salary, ta, da, othersDeduction:others, totalDeductions:totalDeduc,
+    salary, ta, da, damage, othersDeduction:others, totalDeductions:totalDeduc,
     totalPaid, balance,
     paymentMode: payModes.join(', '),
     notes:   document.getElementById('f-notes').value.trim(),
@@ -703,20 +747,26 @@ function collectFormData() {
   };
 }
 
+/* ── SAVE ORDER ── */
 async function saveOrder() {
   const data = collectFormData();
   if (!data.partyId)                  { toast('পার্টি নির্বাচন করুন','error'); return; }
   if (!data.date)                     { toast('তারিখ দিন','error'); return; }
   if (!JSON.parse(data.items).length) { toast('কমপক্ষে একটি পণ্য যোগ করুন','error'); return; }
+
   const btn = document.getElementById('btn-save-order');
   spinBtn(btn, true);
+
   if (editOrderId) {
     const idx = orders.findIndex(o=>o.orderId===editOrderId);
     if (idx>-1) orders[idx]=data; else orders.unshift(data);
-  } else { orders.unshift(data); }
+  } else {
+    orders.unshift(data);
+  }
   localStorage.setItem('bf_orders', JSON.stringify(orders));
   updatePartyBalance(data.partyId);
   toast(editOrderId ? 'অর্ডার আপডেট হয়েছে ✓' : 'অর্ডার সেভ হয়েছে ✓', 'success');
+
   if (BF.sheetUrl) {
     try { await API.post({ action:'saveOrder', ...data }); }
     catch(e) { toast('Sheet সিঙ্ক ব্যর্থ — স্থানীয়ভাবে সেভ হয়েছে','error'); }
@@ -732,6 +782,7 @@ function updatePartyBalance(partyId) {
   if (idx>-1) { parties[idx].currentBalance=balance; localStorage.setItem('bf_parties',JSON.stringify(parties)); }
 }
 
+/* ── POPULATE FORM (view/edit) ── */
 function populateForm(o) {
   currentType = o.orderType;
   setOrderType(currentType);
@@ -745,6 +796,7 @@ function populateForm(o) {
   document.getElementById('f-salary').value   = o.salary||0;
   document.getElementById('f-ta').value       = o.ta||0;
   document.getElementById('f-da').value       = o.da||0;
+  document.getElementById('f-damage').value   = o.damage||0;
   document.getElementById('f-others').value   = o.othersDeduction||0;
   document.getElementById('f-notes').value    = o.notes||'';
   document.getElementById('pay-cash').checked   = (o.paymentMode||'').includes('নগদ');
@@ -752,7 +804,7 @@ function populateForm(o) {
   document.getElementById('pay-mobile').checked = (o.paymentMode||'').includes('মোবাইল');
   populatePartyDropdown(o.partyId);
   setPrevDue(o.prevDue||0);
-  JSON.parse(o.items||'[]').forEach(it => addOrderItem(it.productName, it.code, it.totalQty, it.qty, it.free, it.price, it.productId));
+  JSON.parse(o.items||'[]').forEach(it => addOrderItem(it.productName, it.code, it.qty, it.free, it.productId));
   recalc();
   buildPrintInvoice();
 }
@@ -761,13 +813,14 @@ function resetForm() {
   document.getElementById('order-items-container').innerHTML = '';
   document.getElementById('f-party-address').value = '';
   document.getElementById('f-notes').value          = '';
-  ['f-discount','f-cash','f-bank','f-mobile','f-salary','f-ta','f-da','f-others']
+  ['f-discount','f-cash','f-bank','f-mobile','f-salary','f-ta','f-da','f-damage','f-others']
     .forEach(id => document.getElementById(id).value = '0');
   ['pay-cash','pay-bank','pay-mobile'].forEach(id => document.getElementById(id).checked = false);
   setPrevDue(0);
   itemCount = 0;
 }
 
+/* ── ORDER LIST ── */
 function getFilteredOrders() {
   const q  = document.getElementById('list-search').value.toLowerCase();
   const df = document.getElementById('list-date-from').value;
@@ -837,13 +890,14 @@ function deleteOrder(id){
 function exportOrders() {
   const list=getFilteredOrders();
   if (!list.length) { toast('কোনো ডেটা নেই','error'); return; }
-  const h=['অর্ডার নং','তারিখ','পার্টি','সাবটোটাল','ছাড়','মোট','পূর্ব বাকি','সর্বমোট বাকি','নগদ','ব্যাংক','মোবাইল','বেতন','TA','DA','অন্যান্য','মোট কর্তন','মোট জমা','অবশিষ্ট','স্ট্যাটাস'];
-  const rows=list.map(o=>[o.orderId,o.date,o.partyName,o.subtotal,o.discount,o.grandTotal,o.prevDue,o.totalDue,o.cash,o.bankDeposit,o.mobile,o.salary,o.ta,o.da,o.othersDeduction,o.totalDeductions,o.totalPaid,o.balance,o.status].map(v=>`"${v||''}"`).join(','));
+  const h=['অর্ডার নং','তারিখ','পার্টি','সাবটোটাল','ছাড়','মোট','পূর্ব বাকি','সর্বমোট বাকি','নগদ','ব্যাংক','মোবাইল','বেতন','TA','DA','ক্ষতি','অন্যান্য','মোট কর্তন','মোট জমা','অবশিষ্ট','স্ট্যাটাস'];
+  const rows=list.map(o=>[o.orderId,o.date,o.partyName,o.subtotal,o.discount,o.grandTotal,o.prevDue,o.totalDue,o.cash,o.bankDeposit,o.mobile,o.salary,o.ta,o.da,o.damage,o.othersDeduction,o.totalDeductions,o.totalPaid,o.balance,o.status].map(v=>`"${v||''}"`).join(','));
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('\uFEFF'+[h.join(','),...rows].join('\n'));
   a.download=`${currentType}_${fmt.dateInput()}.csv`; a.click();
 }
 
+/* ── EVENTS ── */
 document.getElementById('btn-new-order').addEventListener('click',  ()=>showForm());
 document.getElementById('btn-back-list').addEventListener('click',   showList);
 document.getElementById('btn-back-list-2').addEventListener('click', showList);
@@ -856,17 +910,19 @@ document.getElementById('btn-export-list').addEventListener('click', exportOrder
 document.getElementById('f-party').addEventListener('change', onPartyChange);
 document.getElementById('f-date').addEventListener('change', buildPrintInvoice);
 document.getElementById('f-notes').addEventListener('input', buildPrintInvoice);
-['f-discount','f-cash','f-bank','f-mobile','f-salary','f-ta','f-da','f-others']
+['f-discount','f-cash','f-bank','f-mobile','f-salary','f-ta','f-da','f-damage','f-others']
   .forEach(id => document.getElementById(id).addEventListener('input', recalc));
 ['list-search','list-date-from','list-date-to','list-status'].forEach(id => {
   document.getElementById(id).addEventListener('input',  renderOrderList);
   document.getElementById(id).addEventListener('change', renderOrderList);
 });
 
+/* ── INIT ── */
 const urlParams = new URLSearchParams(window.location.search);
 const urlType   = urlParams.get('type');
 if (urlType==='purchase'||urlType==='sales') { currentType=urlType; setOrderType(urlType); }
 else { setOrderType('sales'); }
+
 updateListStats();
 renderOrderList();
 if (urlParams.get('new')==='1') showForm();
