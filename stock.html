@@ -244,15 +244,23 @@ function updateStats(list){
   const totalOut=list.reduce((s,r)=>s+r.stockOut,0);
   const totalFreeBal=list.reduce((s,r)=>s+(r.freeIn-r.freeOut),0);
   const totalPhysical=list.reduce((s,r)=>s+((r.stockIn+r.freeIn)-(r.stockOut+r.freeOut)),0);
+  // carton + pcs breakdown across all products
+  let physCtn=0, physPcs=0;
+  list.forEach(r=>{
+    const p=(r.stockIn+r.freeIn)-(r.stockOut+r.freeOut);
+    if(r.cartonSize>0){ physCtn+=Math.floor(p/r.cartonSize); physPcs+=p%r.cartonSize; }
+    else physPcs+=p;
+  });
+  const physDisp=(physCtn?physCtn+' ctn':'')+(physCtn&&physPcs?' + ':'')+(physPcs||!physCtn?physPcs+' pcs':'');
   document.getElementById('s-total').textContent=withMovement.length;
   document.getElementById('s-instock').textContent=inStock.length;
   document.getElementById('s-low').textContent=low.length;
   document.getElementById('s-out').textContent=out.length;
-  document.getElementById('s-physical').textContent=totalPhysical.toLocaleString()+' pcs';
+  document.getElementById('s-physical').textContent=physDisp;
   document.getElementById('total-in').textContent=totalIn.toLocaleString()+' pcs';
   document.getElementById('total-out').textContent=totalOut.toLocaleString()+' pcs';
   document.getElementById('total-free').textContent=totalFreeBal.toLocaleString()+' pcs';
-  document.getElementById('total-physical').textContent=totalPhysical.toLocaleString()+' pcs';
+  document.getElementById('total-physical').textContent=physDisp;
 }
 
 function applyFilterLogic(list){
@@ -339,20 +347,22 @@ function buildPrintReport(){
   document.getElementById('sp-date').textContent='তারিখ: '+new Date().toLocaleDateString('en-CA');
   document.getElementById('sp-supplier').textContent = sup ? '' : 'সব সরবরাহকারী';
   const sorted=[...filtered].sort((a,b)=>(b.stockIn-b.stockOut)-(a.stockIn-a.stockOut));
-  let tin=0,tout=0,tphys=0;
+  let tin=0,tout=0,tphys=0,physCtn=0,physPcs=0;
   const tbody=document.getElementById('sp-items');tbody.innerHTML='';
   sorted.forEach((r,i)=>{
     const bal=r.stockIn-r.stockOut,fb=r.freeIn-r.freeOut,phys=(r.stockIn+r.freeIn)-(r.stockOut+r.freeOut),cs=r.cartonSize;
     tin+=r.stockIn;tout+=r.stockOut;tphys+=phys;
+    if(cs>0){physCtn+=Math.floor(phys/cs);physPcs+=phys%cs;}else physPcs+=phys;
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="c">'+(i+1)+'</td><td>'+r.productName+'</td><td class="c">'+(r.productCode||'')+'</td><td class="r">'+pcsDisp(r.stockIn,cs)+'</td><td class="r">'+pcsDisp(r.stockOut,cs)+'</td><td class="r">'+pcsDisp(bal,cs)+'</td><td class="r">'+pcsDisp(fb,cs)+'</td><td class="r">'+pcsDisp(phys,cs)+'</td>';
     tbody.appendChild(tr);
   });
-  document.getElementById('sp-physical-total').textContent=tphys.toLocaleString()+' pcs';
+  const physDisp=(physCtn?physCtn+' ctn':'')+(physCtn&&physPcs?' + ':'')+(physPcs||!physCtn?physPcs+' pcs':'');
+  document.getElementById('sp-physical-total').textContent=physDisp;
   document.getElementById('sp-count').textContent=sorted.length;
   document.getElementById('sp-tin').textContent=tin.toLocaleString()+' pcs';
   document.getElementById('sp-tout').textContent=tout.toLocaleString()+' pcs';
-  document.getElementById('sp-tphys').textContent=tphys.toLocaleString()+' pcs';
+  document.getElementById('sp-tphys').textContent=physDisp;
 }
 
 document.getElementById('btn-sync').addEventListener('click',syncFromSheet);
