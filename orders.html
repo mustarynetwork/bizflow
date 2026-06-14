@@ -736,10 +736,13 @@ function renderOrderList(){
 }
 function updateListStats(){
   const list=orders.filter(o=>o.orderType===currentType);
+  const totalBilled=list.reduce((s,o)=>s+parseFloat(o.grandTotal||0),0);
+  const totalPaid=list.reduce((s,o)=>s+parseFloat(o.totalPaid||0),0);
   document.getElementById('s-count').textContent=list.length;
-  document.getElementById('s-total').textContent=fmt.currency(list.reduce((s,o)=>s+parseFloat(o.grandTotal||0),0));
-  document.getElementById('s-paid').textContent=fmt.currency(list.reduce((s,o)=>s+parseFloat(o.totalPaid||0),0));
-  document.getElementById('s-due').textContent=fmt.currency(list.reduce((s,o)=>s+parseFloat(o.balance||0),0));
+  document.getElementById('s-total').textContent=fmt.currency(totalBilled);
+  document.getElementById('s-paid').textContent=fmt.currency(totalPaid);
+  // Due = billed − paid (NOT sum of each order's running balance, which double-counts carried-forward dues)
+  document.getElementById('s-due').textContent=fmt.currency(totalBilled-totalPaid);
 }
 function viewOrder(id){const o=orders.find(x=>x.orderId===id);if(!o)return;currentType=o.orderType;showForm(id);document.getElementById('btn-save-order').style.display='none';document.getElementById('btn-save-order-2').style.display='none';}
 function editOrder(id){const o=orders.find(x=>x.orderId===id);if(!o)return;currentType=o.orderType;showForm(id);}
