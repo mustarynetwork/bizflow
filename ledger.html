@@ -200,16 +200,26 @@ function buildLedgerForParty(partyId) {
   const partyOrders = orders.filter(o => o.partyId === partyId);
   const payments = JSON.parse(localStorage.getItem('bf_payments')||'[]').filter(v => v.partyId === partyId);
 
-  // Build a unified event list, then sort by date
+  // Build a unified event list, then sort by actual date (oldest first)
   const events = [];
 
-  partyOrders.forEach(o => {
-    events.push({ kind:'order', date:o.date||'', data:o });
+  partyOrders.forEach((o,i) => {
+    events.push({ kind:'order', date:o.date||'', seq:i, data:o });
   });
-  payments.forEach(v => {
-    events.push({ kind:'voucher', date:v.date||'', data:v });
+  payments.forEach((v,i) => {
+    events.push({ kind:'voucher', date:v.date||'', seq:1000+i, data:v });
   });
-  events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  // Parse date to a sortable number; blank/invalid dates sort to the end.
+  function dateVal(d){
+    if(!d) return Infinity;
+    const t = new Date(d).getTime();
+    return isNaN(t) ? Infinity : t;
+  }
+  events.sort((a,b)=>{
+    const da=dateVal(a.date), db=dateVal(b.date);
+    if(da!==db) return da-db;          // oldest first
+    return a.seq-b.seq;                 // stable tiebreaker for same date
+  });
 
   const entries = [];
   let runningBalance = 0;
@@ -356,16 +366,27 @@ function loadLedger(partyId) {
     selectedParty.phone, selectedParty.area, selectedParty.address
   ].filter(Boolean).join(' · ');
 
-  // Compute summary
+  // Compute summary from the merged ledgerEntries (orders + vouchers already combined).
+  // This guarantees the cards match the statement table and the running balance.
+  const opening = parseFloat(selectedParty.balance||0)||0;
+  let totalDebit = 0, totalCredit = 0;
+  ledgerEntries.forEach(e=>{
+    if(e.isOpening) return;            // opening shown separately, not a transaction
+    totalDebit  += parseFloat(e.debit||0);
+    totalCredit += parseFloat(e.credit||0);
+  });
+  // মোট ক্রয়/বিক্রয় = sum of order totals (debits from orders). Vouchers aren't sales,
+  // so "total invoiced" should reflect billed amount only:
   const totalInvoiced = orders
     .filter(o=>o.partyId===partyId)
     .reduce((s,o)=>s+parseFloat(o.grandTotal||0),0);
-  const totalPaid = orders
-    .filter(o=>o.partyId===partyId)
-    .reduce((s,o)=>s+parseFloat(o.totalPaid||0),0);
-  const balance   = orders
-    .filter(o=>o.partyId===partyId)
-    .reduce((s,o)=>s+parseFloat(o.balance||0), parseFloat(selectedParty.balance||0));
+  // মোট জমা + কর্তন = everything that reduced the due = all credits (order payments + voucher credits)
+  // minus any debit-type vouchers (adjustments that increased due) already netted in totalDebit.
+  const totalPaid = totalCredit;
+  // অবশিষ্ট বাকি = final running balance (last entry), or opening if no transactions
+  const balance = ledgerEntries.length
+    ? parseFloat(ledgerEntries[ledgerEntries.length-1].balance||0)
+    : opening;
 
   document.getElementById('sm-total').textContent = fmt.currency(totalInvoiced);
   document.getElementById('sm-paid').textContent  = fmt.currency(totalPaid);
