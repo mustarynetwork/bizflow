@@ -197,9 +197,19 @@ function populatePartySelect() {
 
 /* ── BUILD LEDGER FROM LOCAL ORDERS ── */
 function buildLedgerForParty(partyId) {
-  const partyOrders = orders
-    .filter(o => o.partyId === partyId)
-    .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const partyOrders = orders.filter(o => o.partyId === partyId);
+  const payments = JSON.parse(localStorage.getItem('bf_payments')||'[]').filter(v => v.partyId === partyId);
+
+  // Build a unified event list, then sort by date
+  const events = [];
+
+  partyOrders.forEach(o => {
+    events.push({ kind:'order', date:o.date||'', data:o });
+  });
+  payments.forEach(v => {
+    events.push({ kind:'voucher', date:v.date||'', data:v });
+  });
+  events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
   const entries = [];
   let runningBalance = 0;
@@ -220,58 +230,65 @@ function buildLedgerForParty(partyId) {
     });
   }
 
-  partyOrders.forEach(o => {
-    const grand     = parseFloat(o.grandTotal    || 0);
-    const totalPaid = parseFloat(o.totalPaid     || 0);
-    const balance   = parseFloat(o.balance       || 0);
-
-    // Transaction line: order total
-    if (o.orderType === 'sales') {
+  events.forEach(ev => {
+    if (ev.kind === 'order') {
+      const o = ev.data;
+      const grand     = parseFloat(o.grandTotal || 0);
+      const totalPaid = parseFloat(o.totalPaid  || 0);
       runningBalance += grand;
       entries.push({
         date:        o.date,
-        description: `বিক্রয় — ${o.orderId}`,
-        debit:       grand,
-        credit:      0,
-        balance:     runningBalance,
-        reference:   o.orderId,
-        type:        'sales',
+        description: (o.orderType==='sales'?'বিক্রয় — ':'ক্রয় — ')+o.orderId,
+        debit:       grand, credit:0, balance:runningBalance,
+        reference:   o.orderId, type:o.orderType,
       });
+      if (totalPaid > 0) {
+        runningBalance -= totalPaid;
+        const payParts=[];
+        if(parseFloat(o.cash||0)>0)payParts.push(`নগদ: ${fmt.currency(o.cash)}`);
+        if(parseFloat(o.bankDeposit||0)>0)payParts.push(`ব্যাংক: ${fmt.currency(o.bankDeposit)}`);
+        if(parseFloat(o.mobile||0)>0)payParts.push(`মোবাইল: ${fmt.currency(o.mobile)}`);
+        if(parseFloat(o.salary||0)>0)payParts.push(`বেতন: ${fmt.currency(o.salary)}`);
+        if(parseFloat(o.ta||0)>0)payParts.push(`TA: ${fmt.currency(o.ta)}`);
+        if(parseFloat(o.da||0)>0)payParts.push(`DA: ${fmt.currency(o.da)}`);
+        if(parseFloat(o.othersDeduction||0)>0)payParts.push(`অন্যান্য: ${fmt.currency(o.othersDeduction)}`);
+        entries.push({
+          date:o.date,
+          description:`জমা — ${o.orderId}${payParts.length?' ('+payParts.join(', ')+')':''}`,
+          debit:0, credit:totalPaid, balance:runningBalance,
+          reference:o.orderId, type:'payment',
+        });
+      }
     } else {
-      runningBalance += grand;
-      entries.push({
-        date:        o.date,
-        description: `ক্রয় — ${o.orderId}`,
-        debit:       grand,
-        credit:      0,
-        balance:     runningBalance,
-        reference:   o.orderId,
-        type:        'purchase',
-      });
-    }
+      // standalone voucher
+      const v = ev.data;
+      const amt = parseFloat(v.amount||0);
+      const methods=[];
+      if(parseFloat(v.cash||0)>0)methods.push(`নগদ: ${fmt.currency(v.cash)}`);
+      if(parseFloat(v.bank||0)>0)methods.push(`ব্যাংক: ${fmt.currency(v.bank)}`);
+      if(parseFloat(v.mobile||0)>0)methods.push(`মোবাইল: ${fmt.currency(v.mobile)}`);
+      if(parseFloat(v.salary||0)>0)methods.push(`বেতন: ${fmt.currency(v.salary)}`);
+      if(parseFloat(v.ta||0)>0)methods.push(`TA: ${fmt.currency(v.ta)}`);
+      if(parseFloat(v.da||0)>0)methods.push(`DA: ${fmt.currency(v.da)}`);
+      if(parseFloat(v.damage||0)>0)methods.push(`ক্ষতি: ${fmt.currency(v.damage)}`);
+      if(parseFloat(v.other||0)>0)methods.push(`অন্যান্য: ${fmt.currency(v.other)}`);
+      const detail = methods.length?' ('+methods.join(', ')+')':'';
 
-    // Payment line if any payment was made
-    if (totalPaid > 0) {
-      runningBalance -= totalPaid;
+      let label, isDebit;
+      if (v.vtype==='receipt'){ label='রিসিট'; isDebit=false; }
+      else if (v.vtype==='payment'){ label='পেমেন্ট'; isDebit=false; }
+      else { label='সমন্বয়'; isDebit=(v.direction==='debit'); }
 
-      // Build payment detail label
-      const payParts = [];
-      if (parseFloat(o.cash||0)   > 0) payParts.push(`নগদ: ${fmt.currency(o.cash)}`);
-      if (parseFloat(o.bankDeposit||0) > 0) payParts.push(`ব্যাংক: ${fmt.currency(o.bankDeposit)}`);
-      if (parseFloat(o.mobile||0) > 0) payParts.push(`মোবাইল: ${fmt.currency(o.mobile)}`);
-      if (parseFloat(o.salary||0) > 0) payParts.push(`বেতন: ${fmt.currency(o.salary)}`);
-      if (parseFloat(o.ta||0)     > 0) payParts.push(`TA: ${fmt.currency(o.ta)}`);
-      if (parseFloat(o.da||0)     > 0) payParts.push(`DA: ${fmt.currency(o.da)}`);
-      if (parseFloat(o.othersDeduction||0) > 0) payParts.push(`অন্যান্য: ${fmt.currency(o.othersDeduction)}`);
+      if (isDebit) { runningBalance += amt; }
+      else { runningBalance -= amt; }
 
       entries.push({
-        date:        o.date,
-        description: `জমা — ${o.orderId}${payParts.length ? ' ('+payParts.join(', ')+')' : ''}`,
-        debit:       0,
-        credit:      totalPaid,
-        balance:     runningBalance,
-        reference:   o.orderId,
-        type:        'payment',
+        date:v.date,
+        description:`${label} — ${v.vno}${detail}`,
+        debit:  isDebit?amt:0,
+        credit: isDebit?0:amt,
+        balance:runningBalance,
+        reference:v.vno, type:'voucher',
       });
     }
   });
@@ -290,11 +307,22 @@ function renderAllPartiesSummary() {
   const typeLabel = { supplier:'সরবরাহকারী', customer:'গ্রাহক', both:'উভয়' };
   const typeBadge = { supplier:'badge-supplier', customer:'badge-customer', both:'badge-both' };
 
+  const allPayments = JSON.parse(localStorage.getItem('bf_payments')||'[]');
+
   tbody.innerHTML = parties.map(p => {
     const partyOrders = orders.filter(o => o.partyId === p.id);
     const totalInvoiced = partyOrders.reduce((s,o) => s+parseFloat(o.grandTotal||0), 0);
-    const totalPaid     = partyOrders.reduce((s,o) => s+parseFloat(o.totalPaid||0),  0);
-    const balance       = partyOrders.reduce((s,o) => s+parseFloat(o.balance||0),    parseFloat(p.balance||0));
+    const paidInOrders  = partyOrders.reduce((s,o) => s+parseFloat(o.totalPaid||0),  0);
+    // standalone vouchers for this party
+    const pv = allPayments.filter(v => v.partyId === p.id);
+    let voucherCredit = 0;
+    pv.forEach(v => {
+      const amt = parseFloat(v.amount||0);
+      if (v.vtype==='receipt' || v.vtype==='payment') voucherCredit += amt;
+      else if (v.vtype==='adjust') voucherCredit += (v.direction==='debit' ? -amt : amt);
+    });
+    const totalPaid = paidInOrders + voucherCredit;
+    const balance   = parseFloat(p.balance||0) + totalInvoiced - totalPaid;
 
     return `<tr>
       <td>
@@ -425,12 +453,14 @@ async function syncFromSheet() {
   const btn = document.getElementById('btn-sync');
   spinBtn(btn, true);
   try {
-    const [pData, oData] = await Promise.all([
+    const [pData, oData, payData] = await Promise.all([
       API.fetch('getParties'),
       API.fetch('getOrders'),
+      API.fetch('getPayments').catch(()=>null),
     ]);
     if (Array.isArray(pData)) { parties = pData; localStorage.setItem('bf_parties',JSON.stringify(parties)); }
     if (Array.isArray(oData)) { orders  = oData; localStorage.setItem('bf_orders', JSON.stringify(orders)); }
+    if (Array.isArray(payData)) { localStorage.setItem('bf_payments', JSON.stringify(payData)); }
     populatePartySelect();
     renderAllPartiesSummary();
     toast('ডেটা লোড হয়েছে ✓','success');
