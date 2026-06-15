@@ -188,44 +188,51 @@ function loadFromCache() {
 
   const salesTotal   = sales.reduce((s,o)    => s + parseFloat(o.grandTotal||0), 0);
   const totalPaid    = orders.reduce((s,o)   => s + parseFloat(o.totalPaid||0),  0);
-  const totalDue     = orders.reduce((s,o)   => s + parseFloat(o.balance||0),    0);
 
-  // Physical stock (on shelf) per product, then sum cartons + loose pcs
-  const physMap = {}; // productId → { pieces, cartonSize }
+  // Standalone vouchers (payments/receipts/adjustments) reduce dues
+  const payments = JSON.parse(localStorage.getItem('bf_payments')||'[]');
+  function voucherCreditForType(otype){
+    // sales-side parties = customers; purchase-side = suppliers. For the dashboard totals
+    // we just net all voucher credits against the combined due.
+    let c = 0;
+    payments.forEach(v=>{
+      const amt = parseFloat(v.amount||0);
+      if (v.vtype==='receipt' || v.vtype==='payment') c += amt;
+      else if (v.vtype==='adjust') c += (v.direction==='debit' ? -amt : amt);
+    });
+    return c;
+  }
+  const allBilled    = orders.reduce((s,o) => s + parseFloat(o.grandTotal||0), 0);
+  const voucherCredit= voucherCreditForType();
+  // মোট বাকি = total billed − total paid in orders − standalone voucher credits
+  const totalDue     = allBilled - totalPaid - voucherCredit;
+  // sales-only due (billed − paid for sales orders), for the sub-label under মোট বিক্রয়
+  const salesDue     = sales.reduce((s,o)=>s+parseFloat(o.grandTotal||0),0)
+                     - sales.reduce((s,o)=>s+parseFloat(o.totalPaid||0),0);
+
+  // Physical stock (on shelf) = (qty in + free in) − (qty out + free out), in pieces
+  let physIn = 0, physOut = 0;
   orders.forEach(o => {
     let items = [];
     try { items = JSON.parse(o.items||'[]'); } catch(e) {}
     items.forEach(it => {
-      if (!it.productId) return;
-      if (!physMap[it.productId]) physMap[it.productId] = { pieces:0, cartonSize:parseFloat(it.cartonSize)||0 };
-      const rec = physMap[it.productId];
-      if (!rec.cartonSize && it.cartonSize) rec.cartonSize = parseFloat(it.cartonSize)||0;
       const qp = parseFloat(it.qtyPieces!==undefined?it.qtyPieces:it.qty)||0;
       const fp = parseFloat(it.freePieces)||0;
-      if (o.orderType === 'purchase') rec.pieces += (qp + fp);
-      if (o.orderType === 'sales')    rec.pieces -= (qp + fp);
+      if (o.orderType === 'purchase') physIn  += (qp + fp);
+      if (o.orderType === 'sales')    physOut += (qp + fp);
     });
   });
-  let totalCtn = 0, totalPcs = 0;
-  Object.values(physMap).forEach(r => {
-    if (r.cartonSize > 0) {
-      totalCtn += Math.floor(r.pieces / r.cartonSize);
-      totalPcs += r.pieces % r.cartonSize;
-    } else {
-      totalPcs += r.pieces;
-    }
-  });
-  const physicalStock = (totalCtn ? totalCtn + ' ctn' : '') + (totalCtn && totalPcs ? ' + ' : '') + (totalPcs || !totalCtn ? totalPcs + ' pcs' : '');
+  const physicalStock = physIn - physOut;
 
   document.getElementById('stat-parties').textContent   = parties.length;
   document.getElementById('stat-products').textContent  = products.filter(p=>p.status==='active').length;
   document.getElementById('stat-sales').textContent     = sales.length;
   document.getElementById('stat-purchases').textContent = purchases.length;
   document.getElementById('stat-sales-total').textContent = fmt.currency(salesTotal);
-  document.getElementById('stat-sales-due').textContent   = `বাকি: ${fmt.currency(sales.reduce((s,o)=>s+parseFloat(o.balance||0),0))}`;
+  document.getElementById('stat-sales-due').textContent   = `বাকি: ${fmt.currency(salesDue)}`;
   document.getElementById('stat-total-paid').textContent  = fmt.currency(totalPaid);
   document.getElementById('stat-total-due').textContent   = fmt.currency(totalDue);
-  document.getElementById('stat-physical-stock').textContent = physicalStock;
+  document.getElementById('stat-physical-stock').textContent = physicalStock.toLocaleString() + ' pcs';
 
   // Recent sales (last 5)
   renderRecentOrders(sales.slice(0,5),   'recent-sales');
@@ -272,10 +279,20 @@ function renderRecentOrders(list, containerId) {
 function renderDueParties(parties, orders) {
   const el = document.getElementById('due-parties-list');
 
-  // Calculate balance per party
+  // Calculate balance per party: opening + billed − paid − voucher credits
+  const allPayments = JSON.parse(localStorage.getItem('bf_payments')||'[]');
   const balances = parties.map(p => {
     const pOrders = orders.filter(o => o.partyId === p.id);
-    const balance = pOrders.reduce((s,o) => s + parseFloat(o.balance||0), parseFloat(p.balance||0));
+    const opening = parseFloat(p.balance||0)||0;
+    const billed  = pOrders.reduce((s,o) => s + parseFloat(o.grandTotal||0), 0);
+    const paid    = pOrders.reduce((s,o) => s + parseFloat(o.totalPaid||0),  0);
+    let vCredit = 0;
+    allPayments.filter(v => v.partyId === p.id).forEach(v => {
+      const amt = parseFloat(v.amount||0);
+      if (v.vtype==='receipt' || v.vtype==='payment') vCredit += amt;
+      else if (v.vtype==='adjust') vCredit += (v.direction==='debit' ? -amt : amt);
+    });
+    const balance = opening + billed - paid - vCredit;
     return { ...p, computedBalance: balance };
   }).filter(p => p.computedBalance > 0.01)
     .sort((a,b) => b.computedBalance - a.computedBalance)
