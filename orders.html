@@ -259,7 +259,11 @@
           <div class="ctn-toggle">
             <label class="sw"><input type="checkbox" id="ctn-mode-toggle"/><span class="slider"></span></label>
             <div><div class="lbl">শুধু কার্টন মোড</div><div class="hint" id="ctn-mode-hint">বন্ধ: কার্টন + পিস আলাদা ইনপুট</div></div>
-            <div style="margin-left:auto;display:flex;gap:8px"><button class="btn btn-outline btn-sm" id="btn-load-all" type="button">📥 সব পণ্য লোড করুন</button></div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" id="btn-upload-file" type="button">📤 ফাইল থেকে লোড</button>
+              <button class="btn btn-outline btn-sm" id="btn-load-all" type="button">📥 সব পণ্য লোড করুন</button>
+            </div>
+            <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none"/>
           </div>
           <div class="items-hdr" id="items-hdr"></div>
           <div id="order-items-container" class="mode-mix"></div>
@@ -316,7 +320,36 @@
   </div>
 </div>
 
+<!-- UPLOAD PREVIEW MODAL -->
+<div id="upload-modal" class="no-print" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="font-size:18px;font-weight:700;margin:0">ফাইল প্রিভিউ</h3>
+      <button onclick="closeUploadModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--ink3)">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink2);margin-bottom:14px" id="upload-summary">—</p>
+    <div style="max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="position:sticky;top:0;background:var(--bg)">
+          <tr>
+            <th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--border)">কোড</th>
+            <th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--border)">পণ্য</th>
+            <th style="text-align:right;padding:8px 10px;border-bottom:1px solid var(--border)">কার্টন</th>
+            <th style="text-align:center;padding:8px 10px;border-bottom:1px solid var(--border)">স্ট্যাটাস</th>
+          </tr>
+        </thead>
+        <tbody id="upload-preview-body"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+      <button class="btn btn-outline" onclick="closeUploadModal()">বাতিল</button>
+      <button class="btn btn-primary" id="btn-confirm-upload">✓ ম্যাচড পণ্য লোড করুন</button>
+    </div>
+  </div>
+</div>
+
 <script src="shared.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="layout.js"></script>
 <script>
 buildNav('orders');
@@ -465,6 +498,105 @@ function addOrderItem(name='',code='',qtyCtn='',qtyPcs='',freeCtn='',freePcs='',
 }
 
 function removeItem(btn){btn.closest('.order-item-row').remove();recalc();}
+
+/* ════════════════════════════════════════
+   FILE UPLOAD — fill order from Excel/CSV (code + carton qty)
+   Matches by product CODE. Quantity treated as CARTONS.
+════════════════════════════════════════ */
+let uploadMatches = [];  // [{code, qty, product|null}]
+
+function handleFileUpload(file){
+  const name=(file.name||'').toLowerCase();
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let rows;
+      if(name.endsWith('.csv')){
+        const text=e.target.result;
+        const wb=XLSX.read(text,{type:'string'});
+        rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+      }else{
+        const data=new Uint8Array(e.target.result);
+        const wb=XLSX.read(data,{type:'array'});
+        rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+      }
+      parseUploadedRows(rows);
+    }catch(err){
+      toast('ফাইল পড়া যায়নি: '+err.message,'error');
+    }
+  };
+  if(name.endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function parseUploadedRows(rows){
+  if(!rows||!rows.length){toast('ফাইল খালি','error');return;}
+  // Find the header row + which columns are code and quantity
+  let codeCol=-1, qtyCol=-1, headerIdx=-1;
+  for(let i=0;i<Math.min(rows.length,15);i++){
+    const r=(rows[i]||[]).map(c=>String(c||'').toLowerCase().trim());
+    r.forEach((c,j)=>{
+      if(codeCol<0 && (c==='code'||c==='item'||c==='item code'||c==='কোড'||c==='product code')) codeCol=j;
+      if(qtyCol<0 && (c==='quantity'||c==='qty'||c==='carton'||c==='ctn'||c==='cartons'||c==='পরিমাণ'||c==='কার্টন')) qtyCol=j;
+    });
+    if(codeCol>=0 && qtyCol>=0){headerIdx=i;break;}
+  }
+  // Fallback: if no headers found, assume first col = code, second = qty
+  if(codeCol<0||qtyCol<0){
+    codeCol=0; qtyCol=1; headerIdx=-1;
+    toast('হেডার পাওয়া যায়নি — কলাম ১=কোড, ২=কার্টন ধরা হয়েছে','info');
+  }
+  const productByCode={};
+  products.forEach(p=>{ if(p.code) productByCode[String(p.code).trim()]=p; });
+
+  uploadMatches=[];
+  const startRow=headerIdx>=0?headerIdx+1:0;
+  for(let i=startRow;i<rows.length;i++){
+    const row=rows[i]||[];
+    const codeRaw=String(row[codeCol]==null?'':row[codeCol]).trim();
+    const qtyRaw=parseFloat(String(row[qtyCol]==null?'':row[qtyCol]).replace(/[^\d.-]/g,''));
+    if(!codeRaw || isNaN(qtyRaw) || qtyRaw<=0) continue;
+    const product=productByCode[codeRaw]||null;
+    uploadMatches.push({code:codeRaw, qty:qtyRaw, product});
+  }
+  if(!uploadMatches.length){toast('কোনো বৈধ কোড+পরিমাণ সারি পাওয়া যায়নি','error');return;}
+  showUploadPreview();
+}
+
+function showUploadPreview(){
+  const matched=uploadMatches.filter(m=>m.product);
+  const unmatched=uploadMatches.filter(m=>!m.product);
+  document.getElementById('upload-summary').textContent=
+    `${uploadMatches.length}টি সারি পড়া হয়েছে · ${matched.length}টি ম্যাচড ✓ · ${unmatched.length}টি কোড পাওয়া যায়নি ⚠`;
+  const tbody=document.getElementById('upload-preview-body');
+  tbody.innerHTML=uploadMatches.map(m=>{
+    const ok=!!m.product;
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 10px"><code style="background:var(--bg);padding:1px 5px;border-radius:4px">${m.code}</code></td>
+      <td style="padding:7px 10px">${ok?m.product.name:'<span style="color:var(--danger)">পাওয়া যায়নি</span>'}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600">${m.qty}</td>
+      <td style="padding:7px 10px;text-align:center">${ok?'<span style="color:var(--success)">✓</span>':'<span style="color:var(--danger)">⚠</span>'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('upload-modal').style.display='flex';
+}
+
+function closeUploadModal(){ document.getElementById('upload-modal').style.display='none'; }
+
+function confirmUpload(){
+  const matched=uploadMatches.filter(m=>m.product);
+  if(!matched.length){toast('কোনো ম্যাচড পণ্য নেই','error');return;}
+  // Fill the form: carton mode ON makes most sense (quantity is in cartons)
+  document.getElementById('order-items-container').innerHTML='';
+  itemCount=0;
+  matched.forEach(m=>{
+    // qty is in CARTONS → qtyCtn, no pcs, no free
+    addOrderItem(m.product.name, m.product.code, m.qty, '', '', '', m.product.id);
+  });
+  recalc(); buildPrintInvoice();
+  closeUploadModal();
+  toast(matched.length+'টি পণ্য লোড হয়েছে ✓','success');
+}
 
 function loadAllProducts(){
   const active=products.filter(p=>p.status==='active');
@@ -765,6 +897,13 @@ document.getElementById('btn-print-order').addEventListener('click',()=>{buildPr
 document.getElementById('btn-print-order-2').addEventListener('click',()=>{buildPrintInvoice();window.print();});
 document.getElementById('btn-add-item').addEventListener('click',()=>addOrderItem());
 document.getElementById('btn-load-all').addEventListener('click',loadAllProducts);
+document.getElementById('btn-upload-file').addEventListener('click',()=>document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change',function(e){
+  const f=e.target.files[0];
+  if(f) handleFileUpload(f);
+  e.target.value=''; // reset so same file can be re-selected
+});
+document.getElementById('btn-confirm-upload').addEventListener('click',confirmUpload);
 document.getElementById('btn-export-list').addEventListener('click',exportOrders);
 document.getElementById('f-party').addEventListener('change',onPartyChange);
 document.getElementById('f-date').addEventListener('change',buildPrintInvoice);
