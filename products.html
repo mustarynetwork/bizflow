@@ -337,7 +337,8 @@ function cartonToPiece() {
   const carton  = parseFloat(document.getElementById('pr-carton').value)       || 0;
   const cPrice  = parseFloat(document.getElementById('pr-carton-price').value) || 0;
   if (carton > 0 && cPrice > 0) {
-    document.getElementById('pr-price').value = (cPrice / carton).toFixed(2);
+    // keep full precision in the stored piece price; round only for display elsewhere
+    document.getElementById('pr-price').value = cPrice / carton;
   }
   calcEffectivePrice();
 }
@@ -345,6 +346,7 @@ function pieceToCarton() {
   const carton  = parseFloat(document.getElementById('pr-carton').value) || 0;
   const pPrice  = parseFloat(document.getElementById('pr-price').value)  || 0;
   if (carton > 0 && pPrice > 0) {
+    // carton price is a display-friendly figure; round it for the input only
     document.getElementById('pr-carton-price').value = (pPrice * carton).toFixed(2);
   }
   calcEffectivePrice();
@@ -400,7 +402,7 @@ async function saveProduct() {
     hasOffer,
     offerSize:     hasOffer ? offerSize : 0,
     freeQty:       hasOffer ? freeQty   : 0,
-    effectivePrice: parseFloat(effectivePrice.toFixed ? effectivePrice.toFixed(2) : effectivePrice),
+    effectivePrice: (typeof effectivePrice === 'number' ? effectivePrice : parseFloat(effectivePrice)),
     status:        document.getElementById('pr-status').value,
     notes:         document.getElementById('pr-notes').value.trim(),
     updated:       new Date().toISOString(),
