@@ -741,14 +741,14 @@ function buildPrintInvoice(){
     let qtyDisp,freeDisp,totalDisp,priceDisp;
     if(allWhole){
       qtyDisp=(qtyPieces/cSize)+' ctn';freeDisp=freePieces?(freePieces/cSize)+' ctn':'';totalDisp=(totalPieces/cSize)+' ctn';
-      priceDisp=(usedPrice>0&&cSize>0)?(usedPrice*cSize).toFixed(1):(cPrice>0?cPrice.toFixed(1):'');
+      priceDisp=(usedPrice>0&&cSize>0)?(usedPrice*cSize).toFixed(2):(cPrice>0?cPrice.toFixed(2):'');
     }else{
       qtyDisp=qtyPieces+' pcs';freeDisp=freePieces?(freePieces+' pcs'):'';
       if(cSize>0){const c=Math.floor(totalPieces/cSize),p=totalPieces%cSize;totalDisp=p===0?(c+' ctn'):(c+' ctn + '+p+' pcs');}else totalDisp=totalPieces+' pcs';
-      priceDisp=(usedPrice>0&&cSize>0)?(usedPrice*cSize).toFixed(1):(cPrice>0?cPrice.toFixed(1):'');
+      priceDisp=(usedPrice>0&&cSize>0)?(usedPrice*cSize).toFixed(2):(cPrice>0?cPrice.toFixed(2):'');
     }
     const tr=document.createElement('tr');
-    tr.innerHTML='<td class="c">'+sl+'</td><td>'+name+'</td><td class="c">'+code+'</td><td class="r">'+totalDisp+'</td><td class="r">'+qtyDisp+'</td><td class="r">'+freeDisp+'</td><td class="r">'+priceDisp+'</td><td class="r">'+amt.toFixed(1)+'</td>';
+    tr.innerHTML='<td class="c">'+sl+'</td><td>'+name+'</td><td class="c">'+code+'</td><td class="r">'+totalDisp+'</td><td class="r">'+qtyDisp+'</td><td class="r">'+freeDisp+'</td><td class="r">'+priceDisp+'</td><td class="r">'+amt.toFixed(2)+'</td>';
     tbody.appendChild(tr);
   });
   const totalQtyEl=document.getElementById('pi-total-qty');
